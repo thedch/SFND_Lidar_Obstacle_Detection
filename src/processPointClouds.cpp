@@ -39,33 +39,52 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
 
 
 template<typename PointT>
-std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(pcl::PointIndices::Ptr inliers, typename pcl::PointCloud<PointT>::Ptr cloud) 
-{
-  // TODO: Create two new point clouds, one cloud with obstacles and other with segmented plane
+std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(
+    pcl::PointIndices::Ptr inliers,
+    typename pcl::PointCloud<PointT>::Ptr cloud) {
 
-    std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> segResult(cloud, cloud);
+    typename pcl::PointCloud<PointT>::Ptr plane_pts{new typename pcl::PointCloud<PointT>};
+    typename pcl::PointCloud<PointT>::Ptr other_pts{new typename pcl::PointCloud<PointT>};
+
+    pcl::ExtractIndices<PointT> extract;
+    extract.setInputCloud(cloud);
+    extract.setIndices(inliers);
+
+    extract.setNegative(false);
+    extract.filter(*plane_pts);
+
+    extract.setNegative(true);
+    extract.filter(*other_pts);
+
+    std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr>
+        segResult(plane_pts, other_pts);
     return segResult;
 }
 
 
 template<typename PointT>
-std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SegmentPlane(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceThreshold)
-{
-    // Time segmentation process
-    auto startTime = std::chrono::steady_clock::now();
-	pcl::PointIndices::Ptr inliers;
+std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr>
+ProcessPointClouds<PointT>::SegmentPlane(typename pcl::PointCloud<PointT>::Ptr cloud,
+                                         int maxIterations,
+                                         float distanceThreshold) {
 
-    pcl::SACSegmentation<pcl::PointXYZ> seg;
+    auto startTime = std::chrono::steady_clock::now();
+
+    pcl::SACSegmentation<PointT> seg;
+	pcl::PointIndices::Ptr inliers {new pcl::PointIndices};
+    pcl::ModelCoefficients::Ptr coeffs {new pcl::ModelCoefficients};
+
     seg.setOptimizeCoefficients(true);
     seg.setModelType(pcl::SACMODEL_PLANE);
-    seg.segMethodType(pcl::SAC_RANSAC);
-    seg.setMaxIterations(1000);
-    seg.setDistanceThreshold(0.01);
+    seg.setMethodType(pcl::SAC_RANSAC);
+    seg.setMaxIterations(maxIterations);
+    seg.setDistanceThreshold(distanceThreshold);
 
-    int i = 0;
-    int num_pts = (int) cloud->points.size();
-    while
-
+    seg.setInputCloud(cloud);
+    seg.segment(*inliers, *coeffs);
+    if (inliers->indices.size() == 0) {
+        std::cout << "RANSAC Failed!" << std::endl;
+    }
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);

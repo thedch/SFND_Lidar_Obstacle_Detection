@@ -1,7 +1,3 @@
-/* \author Aaron Brown */
-// Create simple 3d highway enviroment using PCL
-// for exploring self-driving car sensors
-
 #include "sensors/lidar.h"
 #include "render/render.h"
 #include "processPointClouds.h"
@@ -10,20 +6,18 @@
 
 std::vector<Car> initHighway(bool renderScene, pcl::visualization::PCLVisualizer::Ptr& viewer)
 {
-
     Car egoCar( Vect3(0,0,0), Vect3(4,2,2), Color(0,1,0), "egoCar");
     Car car1( Vect3(15,0,0), Vect3(4,2,2), Color(0,0,1), "car1");
-    Car car2( Vect3(8,-4,0), Vect3(4,2,2), Color(0,0,1), "car2");	
+    Car car2( Vect3(8,-4,0), Vect3(4,2,2), Color(0,0,1), "car2");
     Car car3( Vect3(-12,4,0), Vect3(4,2,2), Color(0,0,1), "car3");
-  
+
     std::vector<Car> cars;
     cars.push_back(egoCar);
     cars.push_back(car1);
     cars.push_back(car2);
     cars.push_back(car3);
 
-    if(renderScene)
-    {
+    if(renderScene) {
         renderHighway(viewer);
         egoCar.render(viewer);
         car1.render(viewer);
@@ -40,19 +34,24 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
     // ----------------------------------------------------
     // -----Open 3D viewer and display simple highway -----
     // ----------------------------------------------------
-    
+
     // RENDER OPTIONS
     bool renderScene = false;
     std::vector<Car> cars = initHighway(renderScene, viewer);
-    
+
     // TODO:: Create lidar sensor
     Lidar* lidar = new Lidar(cars, 0.0);
 
     // TODO:: Create point processor
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = lidar->scan();
+    // std::pair<typename pcl::PointCloud<pcl::PointXYZ>::Ptr, typename pcl::PointCloud<pcl::PointXYZ>::Ptr SegmentPlane(cloud, 10, 0.02);
+    ProcessPointClouds<pcl::PointXYZ> pnt_proc = ProcessPointClouds<pcl::PointXYZ>();
+    auto test = pnt_proc.SegmentPlane(cloud, 100, 0.2);
+    auto car_pts = test.first;
+    auto road_pts = test.second;
 
-    // renderRays(viewer, lidar->position, cloud);
-    renderPointCloud(viewer, cloud, "test", Color(255,0,0));
+    renderPointCloud(viewer, car_pts, "cars", Color(1,0,0));
+    renderPointCloud(viewer, road_pts, "road", Color(1,1,0));
 }
 
 
@@ -61,12 +60,12 @@ void initCamera(CameraAngle setAngle, pcl::visualization::PCLVisualizer::Ptr& vi
 {
 
     viewer->setBackgroundColor (0, 0, 0);
-    
+
     // set camera position and angle
     viewer->initCameraParameters();
     // distance away in meters
     int distance = 16;
-    
+
     switch(setAngle)
     {
         case XY : viewer->setCameraPosition(-distance, -distance, distance, 1, 1, 0); break;
@@ -92,6 +91,6 @@ int main (int argc, char** argv)
     while (!viewer->wasStopped ())
     {
         viewer->spinOnce ();
-    } 
+    }
 }
 
