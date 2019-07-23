@@ -18,13 +18,15 @@ struct KdTree
 {
 	Node* root;
 
-	KdTree()
-	: root(NULL)
-	{}
+	KdTree() : root(NULL) {}
 
 	void insert(std::vector<float> point, int id) {
 		// TODO: Fill in this function to insert a new point into the tree
 		// the function should create a new node and place correctly with in the root
+        Node new_node = Node(point, id);
+        if (root == NULL) {
+            root = &new_node; // root = address of new_node
+        }
 	}
 
 	// return a list of point ids in the tree that are within distance of target
