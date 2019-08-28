@@ -1,4 +1,5 @@
 #include "../../render/render.h"
+#include <cmath>
 
 
 // Structure to represent node of kd tree
@@ -8,12 +9,13 @@ struct Node {
 	Node* left;
 	Node* right;
 
-	Node(std::vector<float> arr, int setId)
-	:	point(arr), id(setId), left(NULL), right(NULL)
-	{}
+	Node(std::vector<float> arr, int setId) : point(arr), id(setId), left(NULL), right(NULL) {}
 };
 
 void insert_recur(Node **n, std::vector<float> point, int id, int depth);
+void search_recur(Node **n, std::vector<int> &ids, const std::vector<float> target,
+	              const float distanceTol, int depth);
+
 
 struct KdTree {
 	Node* root;
@@ -30,21 +32,54 @@ struct KdTree {
 	std::vector<int> search(std::vector<float> target, float distanceTol)
 	{
 		std::vector<int> ids;
-        search_recur(&root, &ids, &target, distanceTol, 0);
+        search_recur(&root, ids, target, distanceTol, 0);
 		return ids;
 	}
 };
 
-void search_recur(Node **node, std::vector<int> &ids, const std::vector<float> target, const float distanceTol, int depth) {
-    // check if current node is a candidate
-    if (abs((*n)->point[0] - target[0])<distanceTol && abs((*n)->point[1] - target[1])<distanceTol) {
-        // TODO: do some circle math
-        ids->push_back((*n)->id);
-    }
 
-    // check if each child is a candidate
-    int cd = depth % 2;
-    if ((*n)->left.point[cd]
+/*
+Given a target and box like this:
+   [#####]
+   [#####]
+   [##T##]
+   [#####]
+   [#####]
+<-#######]    (R_explore)
+   [######->  (L_explore)
+
+If point lies within the R_explore band, then explore right subtree, and same
+for left.
+
+In pseudo code:
+if pt < (t+d): explore R
+if pt > (t-d): explore L
+*/
+void search_recur(Node **n, std::vector<int> &ids, const std::vector<float> target,
+	              const float distanceTol, int depth) {
+	if (*n == NULL) {
+		return;
+	}
+
+	float t_x = target[0];
+	float t_y = target[1];
+	float my_x = (*n)->point[0];
+	float my_y = (*n)->point[1];
+
+	if (abs(my_x - t_x) < distanceTol &&
+		abs(my_y - t_y) < distanceTol) { // point within box!
+		if (pow(my_x-t_x, 2) + pow(my_y-t_y, 2) < pow(distanceTol, 2)) {
+			ids.push_back((*n)->id);
+		}
+	}
+
+	if ((*n)->point[depth % 2] < target[depth % 2] + distanceTol) {
+		search_recur(&((*n)->right), ids, target, distanceTol, depth+1);
+	}
+	if ((*n)->point[depth % 2] > target[depth % 2] - distanceTol) {
+		search_recur(&((*n)->left), ids, target, distanceTol, depth+1);
+	}
+}
 
 
 void insert_recur(Node **n, std::vector<float> point, int id, int depth) {
@@ -69,4 +104,3 @@ void insert_recur(Node **n, std::vector<float> point, int id, int depth) {
         insert_recur(&((*n)->right), point, id, depth+1);
     }
 }
-
