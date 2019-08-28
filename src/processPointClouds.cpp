@@ -19,27 +19,41 @@ void ProcessPointClouds<PointT>::numPoints(typename pcl::PointCloud<PointT>::Ptr
 
 
 template<typename PointT>
-typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(typename pcl::PointCloud<PointT>::Ptr cloud, float filterRes, Eigen::Vector4f minPoint, Eigen::Vector4f maxPoint)
+typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(
+    typename pcl::PointCloud<PointT>::Ptr cloud, float filterRes, Eigen::Vector4f minPoint, Eigen::Vector4f maxPoint)
 {
 
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
 
-    // TODO:: Fill in the function to do voxel grid point reduction and region based filtering
+    typename pcl::PointCloud<PointT>::Ptr cloud_filtered(new pcl::PointCloud<PointT>);
+    typename pcl::VoxelGrid<PointT> vg;
+    vg.setInputCloud(cloud);
+    vg.setLeafSize(filterRes, filterRes, filterRes);
+    vg.filter(*cloud_filtered);
+
+    typename pcl::PointCloud<PointT>::Ptr cloudRegion(new pcl::PointCloud<PointT>);
+
+    pcl::CropBox<PointT> region(true);
+    region.setMin(minPoint);
+    region.setMax(maxPoint);
+    region.setInputCloud(cloud_filtered);
+    region.filter(*cloudRegion);
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "filtering took " << elapsedTime.count() << " milliseconds" << std::endl;
 
-    return cloud;
-
+    return cloudRegion;
 }
 
 
 template<typename PointT>
-std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(
-    pcl::PointIndices::Ptr inliers,
-    typename pcl::PointCloud<PointT>::Ptr cloud) {
+std::pair<typename pcl::PointCloud<PointT>::Ptr,
+          typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(
+            pcl::PointIndices::Ptr inliers,
+            typename pcl::PointCloud<PointT>::Ptr cloud)
+{
 
     typename pcl::PointCloud<PointT>::Ptr plane_pts{new typename pcl::PointCloud<PointT>};
     typename pcl::PointCloud<PointT>::Ptr other_pts{new typename pcl::PointCloud<PointT>};
@@ -64,7 +78,8 @@ template<typename PointT>
 std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr>
 ProcessPointClouds<PointT>::SegmentPlane(typename pcl::PointCloud<PointT>::Ptr cloud,
                                          int maxIterations,
-                                         float distanceThreshold) {
+                                         float distanceThreshold)
+{
 
     auto startTime = std::chrono::steady_clock::now();
 
@@ -97,7 +112,8 @@ template<typename PointT>
 std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::Clustering(typename pcl::PointCloud<PointT>::Ptr cloud,
                                                                                           float clusterTolerance,
                                                                                           int minSize,
-                                                                                          int maxSize) {
+                                                                                          int maxSize)
+{
     // Time clustering process
     auto startTime = std::chrono::steady_clock::now();
 
