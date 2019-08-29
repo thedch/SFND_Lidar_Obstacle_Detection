@@ -74,10 +74,24 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
   pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloud = pointProcessorI->loadPcd("../src/sensors/data/pcd/data_1/0000000000.pcd");
 
   auto filteredCloud = pointProcessorI->FilterCloud(inputCloud, 0.5f,
-    Eigen::Vector4f(-20, -20, -20, 1), Eigen::Vector4f (20, 20, 20, 1));
+      Eigen::Vector4f(-20, -4, -20, 1), Eigen::Vector4f (30, 4, 20, 1));
 
-  renderPointCloud(viewer, filteredCloud, "filteredCloud");
-  // renderPointCloud(viewer, inputCloud, "inputCloud");
+  auto segmentCloud = pointProcessorI->SegmentPlane(filteredCloud, 100, 0.2);
+  auto road_pts = segmentCloud.first;
+  auto car_pts = segmentCloud.second;
+
+  renderPointCloud(viewer, road_pts, "road_pts", Color(0,1,0));
+  // renderPointCloud(viewer, car_pts, "car_pts", Color(1,0,0));
+
+  std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->Clustering(car_pts, 1.0, 30, 3000);
+  int cluster_ID = 0;
+  std::cout << "Found " << cloudClusters.size() << " clusters!" << std::endl;
+  std::vector<Color> colors = {Color(1.0,0,0), Color(0,1.0,1.0), Color(0,0,1.0)};
+  for (pcl::PointCloud<pcl::PointXYZI>::Ptr cluster : cloudClusters) {
+      std::cout << "cluster ID " << cluster_ID << std::endl;
+      renderPointCloud(viewer, cluster, "ObstCloud" + std::to_string(cluster_ID), colors[cluster_ID%4]);
+      cluster_ID++;
+  }
 }
 
 
